@@ -9,32 +9,20 @@ namespace Soenneker.Kiota.GenericAuthenticationProvider;
 /// <inheritdoc cref="IAuthenticationProvider"/>
 public sealed class GenericAuthenticationProvider : IAuthenticationProvider
 {
-    private readonly string _apiKey;
-    private const string _defaultHeaderName = "Authorization";
-    private const string _defaultHeaderFormat = "Bearer {0}";
+    private readonly string _headerName;
+    private readonly IEnumerable<string> _headerValue;
 
-    public GenericAuthenticationProvider(string apiKey)
+    public GenericAuthenticationProvider(string apiKey, string headerName = "Authorization", string headerFormat = "Bearer {0}")
     {
-        _apiKey = apiKey;
+        _headerName = headerName;
+        _headerValue = [string.Format(headerFormat, apiKey)];
     }
 
-    public Task AuthenticateRequestAsync(RequestInformation request, Dictionary<string, object>? additionalAuthenticationContext = null,
+    public Task AuthenticateRequestAsync(RequestInformation request,
+        Dictionary<string, object>? additionalAuthenticationContext = null,
         CancellationToken cancellationToken = default)
     {
-        string headerName = _defaultHeaderName;
-        string headerFormat = _defaultHeaderFormat;
-
-        if (additionalAuthenticationContext is {Count: > 0})
-        {
-            if (additionalAuthenticationContext.TryGetValue("headerName", out object? nameObj) && nameObj is string nameStr)
-                headerName = nameStr;
-
-            if (additionalAuthenticationContext.TryGetValue("headerFormat", out object? formatObj) && formatObj is string formatStr)
-                headerFormat = formatStr;
-        }
-
-        request.Headers[headerName] = [string.Format(headerFormat, _apiKey)];
-
+        request.Headers[_headerName] = _headerValue;
         return Task.CompletedTask;
     }
 }
