@@ -10,7 +10,6 @@ namespace Soenneker.Kiota.GenericAuthenticationProvider;
 public sealed class GenericAuthenticationProvider : IAuthenticationProvider
 {
     private readonly string _apiKey;
-
     private const string _defaultHeaderName = "Authorization";
     private const string _defaultHeaderFormat = "Bearer {0}";
 
