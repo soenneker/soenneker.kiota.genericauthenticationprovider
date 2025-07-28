@@ -10,11 +10,14 @@ namespace Soenneker.Kiota.GenericAuthenticationProvider;
 public sealed class GenericAuthenticationProvider : IAuthenticationProvider
 {
     private readonly string _headerName;
+    private readonly Dictionary<string, string>? _additionalHeaders;
     private readonly IEnumerable<string> _headerValue;
 
-    public GenericAuthenticationProvider(string headerName = "Authorization", string headerValue = "Bearer ")
+    public GenericAuthenticationProvider(string headerName = "Authorization", string headerValue = "Bearer ",
+        Dictionary<string, string>? additionalHeaders = null)
     {
         _headerName = headerName;
+        _additionalHeaders = additionalHeaders;
         _headerValue = [headerValue];
     }
 
@@ -22,6 +25,15 @@ public sealed class GenericAuthenticationProvider : IAuthenticationProvider
         CancellationToken cancellationToken = default)
     {
         request.Headers[_headerName] = _headerValue;
+
+        if (_additionalHeaders is {Count: > 0})
+        {
+            foreach (KeyValuePair<string, string> kvp in _additionalHeaders)
+            {
+                request.Headers[kvp.Key] = [kvp.Value];
+            }
+        }
+
         return Task.CompletedTask;
     }
 }
