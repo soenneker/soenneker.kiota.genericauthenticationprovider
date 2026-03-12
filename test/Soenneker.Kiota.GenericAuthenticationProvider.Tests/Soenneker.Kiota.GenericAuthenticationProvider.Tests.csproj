@@ -27,7 +27,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Soenneker.Kiota.GenericAuthenticationProvider.csproj" />
+        <ProjectReference Include="..\..\src\Soenneker.Kiota.GenericAuthenticationProvider\Soenneker.Kiota.GenericAuthenticationProvider.csproj" />
     </ItemGroup>
 
     <ItemGroup>
