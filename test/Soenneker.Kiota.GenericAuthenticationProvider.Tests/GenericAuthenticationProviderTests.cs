@@ -1,16 +1,15 @@
-﻿using Soenneker.Tests.FixturedUnit;
-using Xunit;
+using Soenneker.Tests.HostedUnit;
 
 namespace Soenneker.Kiota.GenericAuthenticationProvider.Tests;
 
-[Collection("Collection")]
-public sealed class GenericAuthenticationProviderTests : FixturedUnitTest
+[ClassDataSource<Host>(Shared = SharedType.PerTestSession)]
+public sealed class GenericAuthenticationProviderTests : HostedUnitTest
 {
-    public GenericAuthenticationProviderTests(Fixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public GenericAuthenticationProviderTests(Host host) : base(host)
     {
     }
 
-    [Fact]
+    [Test]
     public void Default()
     {
 
