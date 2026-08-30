@@ -1,24 +1,32 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System;
+using System.Linq;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Abstractions.Authentication;
 
 namespace Soenneker.Kiota.GenericAuthenticationProvider;
 
-/// <inheritdoc cref="IAuthenticationProvider"/>
 public sealed class GenericAuthenticationProvider : IAuthenticationProvider
 {
     private readonly string _headerName;
-    private readonly Dictionary<string, string>? _additionalHeaders;
+    private readonly IReadOnlyDictionary<string, string> _additionalHeaders;
     private readonly IEnumerable<string> _headerValue;
+    private readonly AllowedHostsValidator? _allowedHostsValidator;
+    private readonly bool _allowInsecureHttp;
+    private readonly object _hostLock = new();
+    private string? _pinnedHost;
 
     public GenericAuthenticationProvider(string headerName = "Authorization", string headerValue = "Bearer ",
-        Dictionary<string, string>? additionalHeaders = null)
+        Dictionary<string, string>? additionalHeaders = null, IEnumerable<string>? allowedHosts = null, bool allowInsecureHttp = false)
     {
         _headerName = headerName;
-        _additionalHeaders = additionalHeaders;
+        _additionalHeaders = additionalHeaders is null ? new Dictionary<string, string>() : new Dictionary<string, string>(additionalHeaders);
         _headerValue = [headerValue];
+        string[] hosts = allowedHosts?.Where(static host => !string.IsNullOrWhiteSpace(host)).ToArray() ?? [];
+        _allowedHostsValidator = hosts.Length == 0 ? null : new AllowedHostsValidator(hosts);
+        _allowInsecureHttp = allowInsecureHttp;
     }
 
     /// <summary>
@@ -31,9 +39,20 @@ public sealed class GenericAuthenticationProvider : IAuthenticationProvider
     public Task AuthenticateRequestAsync(RequestInformation request, Dictionary<string, object>? additionalAuthenticationContext = null,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        request.Headers.Remove(_headerName);
+
+        foreach (string header in _additionalHeaders.Keys)
+            request.Headers.Remove(header);
+
+        Uri uri = request.URI;
+        bool transportAllowed = uri.Scheme == Uri.UriSchemeHttps || _allowInsecureHttp && uri.Scheme == Uri.UriSchemeHttp;
+        if (!transportAllowed || !IsHostAllowed(uri))
+            return Task.CompletedTask;
+
         request.Headers[_headerName] = _headerValue;
 
-        if (_additionalHeaders is {Count: > 0})
+        if (_additionalHeaders.Count > 0)
         {
             foreach (KeyValuePair<string, string> kvp in _additionalHeaders)
             {
@@ -42,5 +61,17 @@ public sealed class GenericAuthenticationProvider : IAuthenticationProvider
         }
 
         return Task.CompletedTask;
+    }
+
+    private bool IsHostAllowed(Uri uri)
+    {
+        if (_allowedHostsValidator is not null)
+            return _allowedHostsValidator.IsUrlHostValid(uri);
+
+        lock (_hostLock)
+        {
+            _pinnedHost ??= uri.Host;
+            return string.Equals(_pinnedHost, uri.Host, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
