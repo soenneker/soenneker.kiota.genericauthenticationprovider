@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Kiota.Abstractions;
 using Soenneker.Tests.HostedUnit;
@@ -19,32 +20,32 @@ public sealed class GenericAuthenticationProviderTests : HostedUnitTest
     }
 
     [Test]
-    public async Task Explicit_allowlist_prevents_header_leaks()
+    public async Task Explicit_allowlist_prevents_header_leaks(CancellationToken cancellationToken)
     {
         var provider = new GenericAuthenticationProvider("X-Api-Key", "secret",
             new Dictionary<string, string> { ["Api-Version"] = "1" },
             new[] { "api.example.com" });
         var request = new RequestInformation { URI = new System.Uri("https://api.example.com/v1") };
 
-        await provider.AuthenticateRequestAsync(request);
+        await provider.AuthenticateRequestAsync(request, cancellationToken: cancellationToken);
         await Assert.That(request.Headers.ContainsKey("X-Api-Key")).IsTrue();
         await Assert.That(request.Headers.ContainsKey("Api-Version")).IsTrue();
 
         request.URI = new System.Uri("https://attacker.example/v1");
-        await provider.AuthenticateRequestAsync(request);
+        await provider.AuthenticateRequestAsync(request, cancellationToken: cancellationToken);
         await Assert.That(request.Headers.ContainsKey("X-Api-Key")).IsFalse();
         await Assert.That(request.Headers.ContainsKey("Api-Version")).IsFalse();
     }
 
     [Test]
-    public async Task Compatibility_mode_pins_the_first_https_host()
+    public async Task Compatibility_mode_pins_the_first_https_host(CancellationToken cancellationToken)
     {
         var provider = new GenericAuthenticationProvider(headerValue: "secret");
         var request = new RequestInformation { URI = new System.Uri("https://first.example/v1") };
 
-        await provider.AuthenticateRequestAsync(request);
+        await provider.AuthenticateRequestAsync(request, cancellationToken: cancellationToken);
         request.URI = new System.Uri("https://second.example/v1");
-        await provider.AuthenticateRequestAsync(request);
+        await provider.AuthenticateRequestAsync(request, cancellationToken: cancellationToken);
 
         await Assert.That(request.Headers.ContainsKey("Authorization")).IsFalse();
     }
