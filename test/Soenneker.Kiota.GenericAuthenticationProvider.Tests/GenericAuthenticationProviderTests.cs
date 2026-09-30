@@ -20,7 +20,7 @@ public sealed class GenericAuthenticationProviderTests : HostedUnitTest
     }
 
     [Test]
-    public async Task Explicit_allowlist_prevents_header_leaks(CancellationToken cancellationToken)
+    public async ValueTask Explicit_allowlist_prevents_header_leaks(CancellationToken cancellationToken)
     {
         var provider = new GenericAuthenticationProvider("X-Api-Key", "secret",
             new Dictionary<string, string> { ["Api-Version"] = "1" },
@@ -38,7 +38,7 @@ public sealed class GenericAuthenticationProviderTests : HostedUnitTest
     }
 
     [Test]
-    public async Task Compatibility_mode_pins_the_first_https_host(CancellationToken cancellationToken)
+    public async ValueTask Compatibility_mode_pins_the_first_https_host(CancellationToken cancellationToken)
     {
         var provider = new GenericAuthenticationProvider(headerValue: "secret");
         var request = new RequestInformation { URI = new System.Uri("https://first.example/v1") };
